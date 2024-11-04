@@ -21,14 +21,43 @@ void print_replacement(unsigned int vpn, unsigned int ppn) {
 
 unsigned int get_vpn(unsigned int address) {
     // TODO: return the virtual page number for the provided address
-    return 0;
+    return (address >> 12);
 }
 
 void allocate_phys_page(pte_t *pagetable, unsigned int vpn) {
-    // TODO: Implement the function to allocate a physical page
-    // for the virtual page number
-    return;
+    static unsigned int fifo_ptr = 0;
+    static unsigned int pfn_to_vpn_map[MAX_PHYS_PAGES];
+    static int initialized = 0; //initialization dummy var
+
+    unsigned int ppn;
+    unsigned int vpntoreplace; 
+
+    if (!initialized) {
+        for (unsigned int i = 0; i < MAX_PHYS_PAGES; i++) {
+            pfn_to_vpn_map[i] = (unsigned int)(-1); 
+        }
+        initialized = 1;
+    }
+
+    ppn = fifo_ptr % MAX_PHYS_PAGES;
+
+    vpntoreplace = pfn_to_vpn_map[ppn];
+    if (vpntoreplace != (unsigned int)(-1)) { 
+        pagetable[vpntoreplace].valid = 0;
+
+        if (verbose) {
+            print_replacement(vpntoreplace, ppn);
+        }
+    }
+
+    pagetable[vpn].phys_page = ppn;
+    pagetable[vpn].valid = 1;
+
+    pfn_to_vpn_map[ppn] = vpn;
+
+    fifo_ptr++;
 }
+
 
 
 void usage() {
